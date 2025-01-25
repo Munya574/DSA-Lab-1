@@ -6,7 +6,7 @@ Max_students = 10
 
 while len(students) < Max_students:
     s = input('Enter name(input "cancel" to quit): ')
-    if s == "cancel":
+    if s.lower() == "cancel":
         break
     if not s:
         print("Name cannot be empty.")
