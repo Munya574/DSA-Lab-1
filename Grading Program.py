@@ -11,7 +11,7 @@ while count < 10:
     s = input('Enter name(Enter "cancel" to stop): ')
     if s == "cancel":
         break
-    g = input('Enter grade: ')
+    g = eval(input('Enter grade: '))
     students.append(s)
     grades.append(g)
     count += 1
