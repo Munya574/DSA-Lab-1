@@ -6,15 +6,23 @@ Max_students = 10
 
 from tabulate import tabulate
 
-count = 0 
-while count < 10:
-    s = input('Enter name(Enter "cancel" to stop): ')
+while len(students) < Max_students:
+    s = input('Enter name(input "cancel" to quit): ')
     if s == "cancel":
         break
-    g = eval(input('Enter grade: '))
-    students.append(s)
-    grades.append(g)
-    count += 1
+    if not s:
+        print("Name cannot be empty.")
+        continue
+    
+    try:
+        g = eval(input('Enter grade: '))
+        if 0 <= g <= 100:
+            students.append(s)
+            grades.append(g)
+        else:
+            print("Grade must be between 0 and 100.")
+    except ValueError:
+        print(" Invalid input")
 
 for i in range(len(grades)):
     if grades[i] >= 90:
@@ -25,8 +33,7 @@ for i in range(len(grades)):
         category.append('Avergae')
     else:
         category.append('Needs Improvement')
-print(category)
 
 data = [students, grades, category]
 header = ['Name', 'Grade', 'Category']
-print(tabulate(data, headers=header, tablefmt="pretty"))
+print(tabulate(data, headers=headers, tablefmt="pretty"))
