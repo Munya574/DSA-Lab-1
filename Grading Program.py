@@ -15,7 +15,7 @@ while len(students) < Max_students:
         continue
     
     try:
-        g = eval(input('Enter grade: '))
+        g = int(input('Enter grade: '))
         if 0 <= g <= 100:
             students.append(s)
             grades.append(g)
