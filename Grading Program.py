@@ -4,8 +4,6 @@ category = []
 
 Max_students = 10
 
-from tabulate import tabulate
-
 while len(students) < Max_students:
     s = input('Enter name(input "cancel" to quit): ')
     if s == "cancel":
@@ -34,6 +32,11 @@ for i in range(len(grades)):
     else:
         category.append('Needs Improvement')
 
-data = [students, grades, category]
-header = ['Name', 'Grade', 'Category']
-print(tabulate(data, headers=headers, tablefmt="pretty"))
+data = [["Name", "Grade", "Category"]]
+for i in range(len(students)):
+    data.append([students[i], grades[i], category[i]])
+
+col_widths = [max(len(str(row[i])) for row in data) for i in range(len(data[0]))]
+
+for row in data:
+    print("  ".join(str(cell).ljust(col_widths[i]) for i, cell in enumerate(row)))
