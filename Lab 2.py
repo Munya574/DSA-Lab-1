@@ -1,3 +1,6 @@
+def calculate_tax(price):
+    tax_rate = 10.44 / 100
+    return price * tax_rate
 item = []
 prices =[]
 max_total = 100
@@ -14,6 +17,7 @@ while sum(prices) < max_total:
         price = float(input('Enter price: '))
         price_count += calculate_tax(price)
         if price_count > max_total:
+            
             item.append(item_name)
             prices.append(price)
         else:
