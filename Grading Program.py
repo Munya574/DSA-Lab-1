@@ -28,7 +28,7 @@ for i in range(len(grades)):
     elif grades[i] >= 80:
         category.append('Good')
     elif grades[i] >= 70:
-        category.append('Avergae')
+        category.append('Average')
     else:
         category.append('Needs Improvement')
 
