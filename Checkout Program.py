@@ -122,8 +122,12 @@ def main():
             #if running_total + total_with_tax > max_total:
             #    print(f"Adding this item would exceed your ${max_total} limit. Remaining balance: ${max_total - running_total:.2f}")
              #   continue
-        
-            category = input("Enter category (F = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ")
+            while True:
+                category = input("Enter category (f = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ")
+                if category in ["f", "c", "e", "p"]:
+                    break
+                print("Invalid category. Please enter 'f', 'c', 'e', or 'p'.")
+                
             if category.lower() == "f":
                 food.append(item_name)
                 food_prices.append(price)
@@ -132,7 +136,7 @@ def main():
                 clothing_prices.append(price)
             elif category.lower() == "e":
                 electronics.append(item_name)
-                electronics_prices.append
+                electronics_prices.append(price)
             elif category.lower() == "p":
                 pharmaceuticals.append(item_name)
                 pharmaceuticals_prices.append(price)
