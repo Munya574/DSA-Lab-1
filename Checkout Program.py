@@ -2,13 +2,13 @@ def calculate_tax(price):
     tax_rate = 10.44 / 100
     return price * tax_rate
 
-def checkout_process(items, prices, max_total):
+def checkout_process(items, prices):
     while True:
         # totals
         total_before_tax = sum(prices)
         total_tax = sum(calculate_tax(price) for price in prices)
         total_after_tax = total_before_tax + total_tax
-        remaining_balance = max_total - total_after_tax
+        #remaining_balance = max_total - total_after_tax
 
         # header
         print("\n" + "=" * 40)
@@ -30,7 +30,7 @@ def checkout_process(items, prices, max_total):
         print("{:<25} ${:>9.2f}".format("Subtotal:", total_before_tax))
         print("{:<25} ${:>9.2f}".format("Tax:", total_tax))
         print("{:<25} ${:>9.2f}".format("Total:", total_after_tax))
-        print("{:<25} ${:>9.2f}".format("Remaining Balance:", remaining_balance))
+        #print("{:<25} ${:>9.2f}".format("Remaining Balance:", remaining_balance))
 
         print("=" * 40)
 
@@ -44,9 +44,9 @@ def checkout_process(items, prices, max_total):
             choice = input("\nEnter choice (1/2/3): ").strip()
 
             if choice == "1":
-                if remaining_balance < 0:
-                    print("\nCannot checkout: Total exceeds maximum limit")
-                    continue
+                #if remaining_balance < 0:
+                    #print("\nCannot checkout: Total exceeds maximum limit")
+                    #continue
                 print("\nCheckout complete! Thank you for shopping!")
                 return True
 
@@ -82,24 +82,24 @@ def checkout_process(items, prices, max_total):
 def main():
     item = []
     prices =[]
-    max_total = 100
+    #max_total = 100
     running_total = 0
 
-    while running_total < max_total:
+    while True:
         item_name = input('Enter item name (input "q" to quit or "c" to checkout): ')
 
         if item_name.lower() == "q":
             break
         elif item_name.lower() == "c":
             if item:
-                checkout_process(item, prices, max_total)
+                checkout_process(item, prices)
                 break
             else:
                 print("Cart is empty. Please add items first.")
             continue
 
         if not item_name:
-            print("Name cannot be empty.")
+            print("Name cannot be empty. Please enter an item name.")
             continue
 
         try:
@@ -111,9 +111,9 @@ def main():
             tax = calculate_tax(price)
             total_with_tax = price + tax
             
-            if running_total + total_with_tax > max_total:
-                print(f"Adding this item would exceed your ${max_total} limit. Remaining balance: ${max_total - running_total:.2f}")
-                continue
+            #if running_total + total_with_tax > max_total:
+            #    print(f"Adding this item would exceed your ${max_total} limit. Remaining balance: ${max_total - running_total:.2f}")
+             #   continue
                 
             item.append(item_name)
             prices.append(price)
