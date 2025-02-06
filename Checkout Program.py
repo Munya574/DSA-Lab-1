@@ -86,6 +86,10 @@ def main():
     clothing = []
     electronics = []
     pharmaceuticals = []
+    food_prices = []
+    clothing_prices = []
+    electronics_prices = []
+    pharmaceuticals_prices = []
     #max_total = 100
     running_total = 0
 
@@ -122,12 +126,16 @@ def main():
             category = input("Enter category (F = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ")
             if category.lower() == "f":
                 food.append(item_name)
+                food_prices.append(price)
             elif category.lower() == "c":
                 clothing.append(item_name)
+                clothing_prices.append(price)
             elif category.lower() == "e":
                 electronics.append(item_name)
+                electronics_prices.append
             elif category.lower() == "p":
                 pharmaceuticals.append(item_name)
+                pharmaceuticals_prices.append(price)
 
             item.append(item_name)
             prices.append(price)
