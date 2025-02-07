@@ -2,36 +2,36 @@ def calculate_tax(price):
     tax_rate = 10.44 / 100
     return price * tax_rate
 
-def checkout_process(items, prices):
+def display_category_items(category_name, items, prices):
+    if items:
+        print(f"\n{category_name}:")
+        print("{:<25} {:>12}".format("Item", "Price ($)"))
+        print("-" * 40)
+        for item, price in zip(items, prices):
+            print(f"{item:<25} ${price:>9.2f}")
+
+def checkout_process(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
     while True:
-        # totals
         total_before_tax = sum(prices)
         total_tax = sum(calculate_tax(price) for price in prices)
         total_after_tax = total_before_tax + total_tax
-        #remaining_balance = max_total - total_after_tax
 
-        # header
+        # Header
         print("\n" + "=" * 40)
         print("{:^40}".format("SHOPPING CART"))
         print("=" * 40)
 
-        if not items:
-            print("\nCart is empty. No items to checkout.")
-            return False
-
-        # Display items
-        print("\n{:<25} {:>12}".format("Item", "Price ($)")) 
-        print("-" * 40)
-        for i, (item, price) in enumerate(zip(items, prices), 1): 
-            print(f"{i}. {item:<22} ${price:>9.2f}")
+        # Display categories
+        display_category_items("Food", food, food_prices)
+        display_category_items("Clothing", clothing, clothing_prices)
+        display_category_items("Electronics", electronics, electronics_prices)
+        display_category_items("Pharmaceuticals", pharmaceuticals, pharmaceuticals_prices)
 
         # Display totals
         print("\n" + "-" * 40)
         print("{:<25} ${:>9.2f}".format("Subtotal:", total_before_tax))
         print("{:<25} ${:>9.2f}".format("Tax:", total_tax))
         print("{:<25} ${:>9.2f}".format("Total:", total_after_tax))
-        #print("{:<25} ${:>9.2f}".format("Remaining Balance:", remaining_balance))
-
         print("=" * 40)
 
         # User choice
@@ -40,44 +40,36 @@ def checkout_process(items, prices):
         print("2. Remove Item")
         print("3. Cancel Transaction")
         
-        try:
-            choice = input("\nEnter choice (1/2/3): ").strip()
+        choice = input("\nEnter choice (1/2/3): ").strip()
 
-            if choice == "1":
-                #if remaining_balance < 0:
-                    #print("\nCannot checkout: Total exceeds maximum limit")
-                    #continue
-                print("\nCheckout complete! Thank you for shopping!")
-                return True
+        if choice == "1":
+            print("\nCheckout complete! Thank you for shopping!")
+            return True
 
-            elif choice == "2":
-                if not items:
-                    print("\nNo items to remove.")
-                    continue
-                    
-                try:
-                    remove_index = int(input(f"Enter item number (1-{len(items)}): ")) - 1 # covert to 0-based index
-                    if 0 <= remove_index < len(items): 
-                        removed_item = items.pop(remove_index) # remove item and price at index
-                        removed_price = prices.pop(remove_index)
-                        print(f"\nRemoved {removed_item} (${removed_price:.2f})")
-                    else:
-                        print("\nInvalid item number. Please try again.")
-                except ValueError:
-                    print("\nInvalid input. Please enter a number.")
+        elif choice == "2":
+            if not items:
+                print("\nNo items to remove.")
+                continue
+                
+            try:
+                remove_index = int(input(f"Enter item number (1-{len(items)}): ")) - 1 # convert to 0-based index
+                if 0 <= remove_index < len(items): 
+                    removed_item = items.pop(remove_index) # remove item and price at index
+                    removed_price = prices.pop(remove_index)
+                    print(f"\nRemoved {removed_item} (${removed_price:.2f})")
+                else:
+                    print("\nInvalid item number. Please try again.")
+            except ValueError:
+                print("\nInvalid input. Please enter a number.")
 
-            elif choice == "3":
-                print("\nTransaction cancelled.")
-                items.clear()
-                prices.clear()
-                return False
+        elif choice == "3":
+            print("\nTransaction cancelled.")
+            items.clear()
+            prices.clear()
+            return False
 
-            else:
-                print("\nInvalid choice. Please enter 1, 2, or 3.")
-
-        except Exception as e:
-            print(f"\nAn error occurred: {str(e)}")
-            print("Please try again.")
+        else:
+            print("\nInvalid choice. Please enter 1, 2, or 3.")
 
 def main():
     item = []
@@ -90,18 +82,16 @@ def main():
     clothing_prices = []
     electronics_prices = []
     pharmaceuticals_prices = []
-    #max_total = 100
-    running_total = 0
 
     while True:
-        item_name = input('Enter item name (input "q" to quit or "c" to checkout): ')
+        item_name = input('Enter item name (input "q" to quit or "c" to checkout): ').strip()
 
         if item_name.lower() == "q":
             break
         elif item_name.lower() == "c":
             if item:
-                checkout_process(item, prices)
-                break
+                if checkout_process(item, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
+                    break
             else:
                 print("Cart is empty. Please add items first.")
             continue
@@ -115,40 +105,33 @@ def main():
             if price <= 0:
                 print("Price must be greater than 0. Re-enter item name and price")
                 continue
-                
-            tax = calculate_tax(price)
-            total_with_tax = price + tax
-            
-            #if running_total + total_with_tax > max_total:
-            #    print(f"Adding this item would exceed your ${max_total} limit. Remaining balance: ${max_total - running_total:.2f}")
-             #   continue
+                    
             while True:
-                category = input("Enter category (f = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ")
+                category = input("Enter category (f = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ").strip().lower()
                 if category in ["f", "c", "e", "p"]:
                     break
                 print("Invalid category. Please enter 'f', 'c', 'e', or 'p'.")
-                
-            if category.lower() == "f":
+
+            if category == "f":
                 food.append(item_name)
                 food_prices.append(price)
-            elif category.lower() == "c":
+            elif category == "c":
                 clothing.append(item_name)
                 clothing_prices.append(price)
-            elif category.lower() == "e":
+            elif category == "e":
                 electronics.append(item_name)
                 electronics_prices.append(price)
-            elif category.lower() == "p":
+            elif category == "p":
                 pharmaceuticals.append(item_name)
                 pharmaceuticals_prices.append(price)
 
             item.append(item_name)
             prices.append(price)
-            running_total += total_with_tax
-            print(f"Item added! Running total (with tax): ${running_total:.2f}")
-            # print(f"Remaining balance: ${max_total - running_total:.2f}")
+
+            print(f"Item added! Running total (without tax): ${sum(prices):.2f}")
 
         except ValueError:
-            print(" Invalid input. Re-enter item name and price")
+            print("Invalid input. Re-enter item name and price")
 
 if __name__ == "__main__":
     main()
