@@ -7,8 +7,8 @@ def display_category_items(category_name, items, prices):
         print(f"\n{category_name}:")
         print("{:<25} {:>12}".format("Item", "Price ($)"))
         print("-" * 40)
-        for item, price in zip(items, prices):
-            print(f"{item:<25} ${price:>9.2f}")
+        for i, (item, price) in zip(items, prices):
+            print(f"{i}. {item:<25} ${price:>9.2f}")
 
 def checkout_process(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
     while True:
