@@ -1,3 +1,6 @@
+import json
+import os
+
 def calculate_tax(price):
     tax_rate = 10.44 / 100
     return price * tax_rate
@@ -9,6 +12,53 @@ def display_category_items(category_name, items, prices):
         print("-" * 40)
         for i, (item, price) in enumerate(zip(items, prices)):
             print(f"{i}. {item:<25} ${price:>9.2f}")
+
+def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
+    # Calculate totals
+    total_before_tax = sum(prices)
+    total_tax = sum(calculate_tax(price) for price in prices)
+    total_after_tax = total_before_tax + total_tax
+    
+    # Create categories dictionary with items and prices
+    categories = {
+        "food": [{"item": item, "price": price} for item, price in zip(food, food_prices)],
+        "clothing": [{"item": item, "price": price} for item, price in zip(clothing, clothing_prices)],
+        "electronics": [{"item": item, "price": price} for item, price in zip(electronics, electronics_prices)],
+        "pharmaceuticals": [{"item": item, "price": price} for item, price in zip(pharmaceuticals, pharmaceuticals_prices)]
+    }
+    
+    # Create receipt data structure
+    receipt_data = {
+        "items": [{"name": item, "price": price} for item, price in zip(items, prices)],
+        "categories": categories,
+        "subtotal": total_before_tax,
+        "tax": total_tax,
+        "total": total_after_tax
+    }
+    
+    return receipt_data
+
+def save_receipt_to_json(receipt_data):
+    """Saves the receipt data to receipts.json and confirm to the user."""
+
+    file_name = "receipts.json"
+
+    # Check if file exists, if not create it
+    if not os.path.exists(file_name):
+        with open(file_name, "w") as file:
+            json.dump([], file)
+
+    # Read existing data
+    with open(file_name, "r") as file:
+        receipts = json.load(file)
+
+    # Add new receipt and save
+    receipts.append(receipt_data)
+
+    with open(file_name, "w") as file:
+        json.dump(receipts, file, indent=4)
+
+    print("\n Your receipt has been saved!")
 
 def checkout_process(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
     while True:
@@ -44,6 +94,11 @@ def checkout_process(items, prices, food, food_prices, clothing, clothing_prices
 
         if choice == "1":
 
+            receipt_data = generate_receipt_data(
+                items, prices, food, food_prices, clothing, 
+                clothing_prices, electronics, electronics_prices, 
+                pharmaceuticals, pharmaceuticals_prices
+            )
             save_receipt_to_json(receipt_data)
 
             print("\nCheckout complete! Thank you for shopping!")
@@ -57,8 +112,30 @@ def checkout_process(items, prices, food, food_prices, clothing, clothing_prices
             try:
                 remove_index = int(input(f"Enter item number (1-{len(items)}): ")) - 1 # convert to 0-based index
                 if 0 <= remove_index < len(items): 
-                    removed_item = items.pop(remove_index) # remove item and price at index
+                    item_to_remove = items[remove_index]
+                    
+                    # Remove from main lists
+                    removed_item = items.pop(remove_index)
                     removed_price = prices.pop(remove_index)
+                    
+                    # Remove from category lists
+                    if item_to_remove in food:
+                        idx = food.index(item_to_remove)
+                        food.pop(idx)
+                        food_prices.pop(idx)
+                    elif item_to_remove in clothing:
+                        idx = clothing.index(item_to_remove)
+                        clothing.pop(idx)
+                        clothing_prices.pop(idx)
+                    elif item_to_remove in electronics:
+                        idx = electronics.index(item_to_remove)
+                        electronics.pop(idx)
+                        electronics_prices.pop(idx)
+                    elif item_to_remove in pharmaceuticals:
+                        idx = pharmaceuticals.index(item_to_remove)
+                        pharmaceuticals.pop(idx)
+                        pharmaceuticals_prices.pop(idx)
+
                     print(f"\nRemoved {removed_item} (${removed_price:.2f})")
                 else:
                     print("\nInvalid item number. Please try again.")
@@ -138,27 +215,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-def save_receipt_to_json(receipt_data):
-    """Saves the receipt data to receipts.json and confirm to the user."""
-    import json
-    import os
-
-    file_name = "receipts.json"
-
-    # Check if file exists, if not create it
-    if not os.path.exists(file_name):
-        with open(file_name, "w") as file:
-            json.dump([], file)
-
-    # Read existing data
-    with open(file_name, "r") as file:
-        receipts = json.load(file)
-
-    # Add new receipt and save
-    receipts.append(receipt_data)
-
-    with open(file_name, "w") as file:
-        json.dump(receipts, file, indent=4)
-
-    print("\n Your receipt has been saved!")
