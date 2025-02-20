@@ -43,6 +43,9 @@ def checkout_process(items, prices, food, food_prices, clothing, clothing_prices
         choice = input("\nEnter choice (1/2/3): ").strip()
 
         if choice == "1":
+
+            save_receipt_to_json(receipt_data)
+
             print("\nCheckout complete! Thank you for shopping!")
             return True
 
@@ -135,3 +138,27 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def save_receipt_to_json(receipt_data):
+    """Saves the receipt data to receipts.json and confirm to the user."""
+    import json
+    import os
+
+    file_name = "receipts.json"
+
+    # Check if file exists, if not create it
+    if not os.path.exists(file_name):
+        with open(file_name, "w") as file:
+            json.dump([], file)
+
+    # Read existing data
+    with open(file_name, "r") as file:
+        receipts = json.load(file)
+
+    # Add new receipt and save
+    receipts.append(receipt_data)
+
+    with open(file_name, "w") as file:
+        json.dump(receipts, file, indent=4)
+
+    print("\n Your receipt has been saved!")
