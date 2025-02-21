@@ -35,5 +35,9 @@ while balance > 0:
                 break
 
     except ValueError:
+<<<<<<< HEAD:Lab 2.py
         print("Invalid input. Re-enter item name and price.")
 
+=======
+        print(" Invalid input. Re-enter item name and price")
+>>>>>>> c9e06bac3f320dd7ca6cef6b90f49a369f8f4fc5:Checkout Program.py
