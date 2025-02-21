@@ -14,6 +14,28 @@ def display_category_items(category_name, items, prices):
         for i, (item, price) in enumerate(zip(items, prices)):
             print(f"{i}. {item:<25} ${price:>9.2f}")
 
+def get_existing_transaction_ids():
+    file_name = "receipts.json"
+    if not os.path.exists(file_name):
+        return set()
+        
+    with open(file_name, "r") as file:
+        try:
+            receipts = json.load(file)
+            return {receipt["transaction_id"] for receipt in receipts if "transaction_id" in receipt}
+        except json.JSONDecodeError:
+            return set()
+
+def generate_transaction_id():
+    existing_ids = get_existing_transaction_ids()
+    
+    while True:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        transaction_id = f"ND-{timestamp}"
+
+        if transaction_id not in existing_ids:
+            return transaction_id
+
 def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
     # Calculate totals
     total_before_tax = sum(prices)
@@ -41,30 +63,7 @@ def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_p
     
     return receipt_data
 
-def get_existing_transaction_ids():
-    file_name = "receipts.json"
-    if not os.path.exists(file_name):
-        return set()
-        
-    with open(file_name, "r") as file:
-        try:
-            receipts = json.load(file)
-            return {receipt["transaction_id"] for receipt in receipts}
-        except json.JSONDecodeError:
-            return set()
-
-def generate_transaction_id():
-    existing_ids = get_existing_transaction_ids()
-    
-    while True:
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-        transaction_id = f"ND-{timestamp}"
-
-        if transaction_id not in existing_ids:
-            return transaction_id
-
 def save_receipt_to_json(receipt_data):
-
     file_name = "receipts.json"
 
     # Check if file exists, if not create it
@@ -79,18 +78,13 @@ def save_receipt_to_json(receipt_data):
         except json.JSONDecodeError:
             receipts = []
 
-    # Verify transaction ID is unique
-    existing_ids = {receipt["transaction_id"] for receipt in receipts}
-    if receipt_data["transaction_id"] in existing_ids:
-        receipt_data["transaction_id"] = generate_transaction_id()
-
     # Add new receipt and save
     receipts.append(receipt_data)
 
     with open(file_name, "w") as file:
         json.dump(receipts, file, indent=4)
 
-    print("\n Your receipt has been saved!")
+    print(f"\n Your receipt has been saved! Transaction ID: {receipt_data['transaction_id']}")
 
 def checkout_process(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
     while True:
