@@ -1,5 +1,6 @@
 import json
 import os
+import datetime
 
 def calculate_tax(price):
     tax_rate = 10.44 / 100
@@ -29,6 +30,8 @@ def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_p
     
     # Create receipt data structure
     receipt_data = {
+        "transaction_id": generate_transaction_id(),
+        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "items": [{"name": item, "price": price} for item, price in zip(items, prices)],
         "categories": categories,
         "subtotal": total_before_tax,
@@ -38,8 +41,29 @@ def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_p
     
     return receipt_data
 
+def get_existing_transaction_ids():
+    file_name = "receipts.json"
+    if not os.path.exists(file_name):
+        return set()
+        
+    with open(file_name, "r") as file:
+        try:
+            receipts = json.load(file)
+            return {receipt["transaction_id"] for receipt in receipts}
+        except json.JSONDecodeError:
+            return set()
+
+def generate_transaction_id():
+    existing_ids = get_existing_transaction_ids()
+    
+    while True:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        transaction_id = f"ND-{timestamp}"
+
+        if transaction_id not in existing_ids:
+            return transaction_id
+
 def save_receipt_to_json(receipt_data):
-    """Saves the receipt data to receipts.json and confirm to the user."""
 
     file_name = "receipts.json"
 
@@ -50,7 +74,15 @@ def save_receipt_to_json(receipt_data):
 
     # Read existing data
     with open(file_name, "r") as file:
-        receipts = json.load(file)
+        try:
+            receipts = json.load(file)
+        except json.JSONDecodeError:
+            receipts = []
+
+    # Verify transaction ID is unique
+    existing_ids = {receipt["transaction_id"] for receipt in receipts}
+    if receipt_data["transaction_id"] in existing_ids:
+        receipt_data["transaction_id"] = generate_transaction_id()
 
     # Add new receipt and save
     receipts.append(receipt_data)
@@ -146,6 +178,14 @@ def checkout_process(items, prices, food, food_prices, clothing, clothing_prices
             print("\nTransaction cancelled.")
             items.clear()
             prices.clear()
+            food.clear()
+            food_prices.clear()
+            clothing.clear()
+            clothing_prices.clear()
+            electronics.clear()
+            electronics_prices.clear()
+            pharmaceuticals.clear()
+            pharmaceuticals_prices.clear()
             return False
 
         else:
