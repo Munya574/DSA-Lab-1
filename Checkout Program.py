@@ -1,251 +1,210 @@
-import json
 import os
 import datetime
 
+# Constants
+TAX_RATE = 0.1044
+STORE_NAME = "GROUP 5 STORE"
+
+# Categories configuration
+CATEGORIES = {
+    "f": ("FOOD", "food"),
+    "c": ("CLOTHING", "clothing"),
+    "e": ("ELECTRONICS", "electronics"),
+    "p": ("PHARMACEUTICALS", "pharmaceuticals")
+}
+
 def calculate_tax(price):
-    tax_rate = 10.44 / 100
-    return price * tax_rate
+    return price * TAX_RATE
 
-def display_category_items(category_name, items, prices):
-    if items:
-        print(f"\n{category_name}:")
-        print("{:<25} {:>12}".format("Item", "Price ($)"))
-        print("-" * 40)
-        for i, (item, price) in enumerate(zip(items, prices)):
-            print(f"{i}. {item:<25} ${price:>9.2f}")
-
-def get_existing_transaction_ids():
-    file_name = "receipts.json"
-    if not os.path.exists(file_name):
-        return set()
-        
-    with open(file_name, "r") as file:
-        try:
-            receipts = json.load(file)
-            return {receipt["transaction_id"] for receipt in receipts if "transaction_id" in receipt}
-        except json.JSONDecodeError:
-            return set()
+def get_totals(prices):
+    total_before_tax = sum(prices)
+    total_tax = sum(calculate_tax(price) for price in prices)
+    return total_before_tax, total_tax, total_before_tax + total_tax
 
 def generate_transaction_id():
     existing_ids = get_existing_transaction_ids()
-    
     while True:
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
         transaction_id = f"ND-{timestamp}"
-
         if transaction_id not in existing_ids:
             return transaction_id
 
-def generate_receipt_data(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
-    # Calculate totals
-    total_before_tax = sum(prices)
-    total_tax = sum(calculate_tax(price) for price in prices)
-    total_after_tax = total_before_tax + total_tax
+def get_existing_transaction_ids():
+    receipts_dir = "receipts"
+    if not os.path.exists(receipts_dir):
+        return set()
+    return {filename.split('_')[0] for filename in os.listdir(receipts_dir) 
+            if filename.endswith('_receipt.txt')}
+
+def create_receipt_text(transaction_id, items, prices, category_data):
+    total_before_tax, total_tax, total_after_tax = get_totals(prices)
     
-    # Create categories dictionary with items and prices
-    categories = {
-        "food": [{"item": item, "price": price} for item, price in zip(food, food_prices)],
-        "clothing": [{"item": item, "price": price} for item, price in zip(clothing, clothing_prices)],
-        "electronics": [{"item": item, "price": price} for item, price in zip(electronics, electronics_prices)],
-        "pharmaceuticals": [{"item": item, "price": price} for item, price in zip(pharmaceuticals, pharmaceuticals_prices)]
-    }
+    receipt = []
+    receipt.append("=" * 40)
+    receipt.append(f"{{:^40}}".format(STORE_NAME))
+    receipt.append("{:^40}".format("Tax Receipt"))
+    receipt.append("=" * 40)
+    receipt.append(f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    receipt.append(f"Transaction ID: {transaction_id}")
+    receipt.append("-" * 40)
     
-    # Create receipt data structure
-    receipt_data = {
-        "transaction_id": generate_transaction_id(),
-        "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "items": [{"name": item, "price": price} for item, price in zip(items, prices)],
-        "categories": categories,
-        "subtotal": total_before_tax,
-        "tax": total_tax,
-        "total": total_after_tax
-    }
+    # Display categorized items
+    for category_key, (category_name, items_list, prices_list) in category_data.items():
+        if items_list:
+            receipt.append(f"\n{category_name}:")
+            for item, price in zip(items_list, prices_list):
+                receipt.append(f"{item:<25} ${price:>9.2f}")
     
-    return receipt_data
+    # Totals
+    receipt.append("\n" + "-" * 40)
+    receipt.append(f"{'Subtotal:':<25} ${total_before_tax:>9.2f}")
+    receipt.append(f"{'Tax (10.44%):':<25} ${total_tax:>9.2f}")
+    receipt.append(f"{'TOTAL:':<25} ${total_after_tax:>9.2f}")
+    receipt.append("=" * 40)
+    receipt.append("\nThank you for your purchase!")
+    receipt.append("Please keep this receipt for your records.")
+    
+    return "\n".join(receipt)
 
-def save_receipt_to_json(receipt_data):
-    file_name = "receipts.json"
+def save_receipt_to_txt(receipt_text, transaction_id):
+    os.makedirs("receipts", exist_ok=True)
+    file_path = os.path.join("receipts", f"{transaction_id}_receipt.txt")
+    try:
+        with open(file_path, "w") as file:
+            file.write(receipt_text)
+        print(f"\nYour receipt has been saved to {file_path}")
+    except IOError as e:
+        print(f"\nError saving receipt: {e}")
 
-    # Check if file exists, if not create it
-    if not os.path.exists(file_name):
-        with open(file_name, "w") as file:
-            json.dump([], file)
+def display_cart(category_data, prices):
+    total_before_tax, total_tax, total_after_tax = get_totals(prices)
+    print("\n" + "=" * 40)
+    print("{:^40}".format("SHOPPING CART"))
+    print("=" * 40)
+    
+    item_index = 0
+    for category_key, (category_name, items, prices_list) in category_data.items():
+        if items:
+            print(f"\n{category_name}:")
+            print("{:<5} {:<25} {:>12}".format("No.", "Item", "Price ($)"))
+            print("-" * 40)
+            for i, (item, price) in enumerate(zip(items, prices_list), item_index):
+                print(f"{i:<5} {item:<25} ${price:>9.2f}")
+            item_index += len(items)
+    
+    print("\n" + "-" * 40)
+    print(f"{'Subtotal:':<25} ${total_before_tax:>9.2f}")
+    print(f"{'Tax:':<25} ${total_tax:>9.2f}")
+    print(f"{'Total:':<25} ${total_after_tax:>9.2f}")
+    print("=" * 40)
+    return item_index  # Total number of items
 
-    # Read existing data
-    with open(file_name, "r") as file:
-        try:
-            receipts = json.load(file)
-        except json.JSONDecodeError:
-            receipts = []
-
-    # Add new receipt and save
-    receipts.append(receipt_data)
-
-    with open(file_name, "w") as file:
-        json.dump(receipts, file, indent=4)
-
-    print(f"\n Your receipt has been saved! Transaction ID: {receipt_data['transaction_id']}")
-
-def checkout_process(items, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
+def checkout_process(items, prices, category_data):
     while True:
-        total_before_tax = sum(prices)
-        total_tax = sum(calculate_tax(price) for price in prices)
-        total_after_tax = total_before_tax + total_tax
-
-        # Header
-        print("\n" + "=" * 40)
-        print("{:^40}".format("SHOPPING CART"))
-        print("=" * 40)
-
-        # Display categories
-        display_category_items("Food", food, food_prices)
-        display_category_items("Clothing", clothing, clothing_prices)
-        display_category_items("Electronics", electronics, electronics_prices)
-        display_category_items("Pharmaceuticals", pharmaceuticals, pharmaceuticals_prices)
-
-        # Display totals
-        print("\n" + "-" * 40)
-        print("{:<25} ${:>9.2f}".format("Subtotal:", total_before_tax))
-        print("{:<25} ${:>9.2f}".format("Tax:", total_tax))
-        print("{:<25} ${:>9.2f}".format("Total:", total_after_tax))
-        print("=" * 40)
-
-        # User choice
+        total_items = display_cart(category_data, prices)
+        
         print("\nOptions:")
         print("1. Complete Checkout")
         print("2. Remove Item")
         print("3. Cancel Transaction")
-        
         choice = input("\nEnter choice (1/2/3): ").strip()
-
+        
         if choice == "1":
-
-            receipt_data = generate_receipt_data(
-                items, prices, food, food_prices, clothing, 
-                clothing_prices, electronics, electronics_prices, 
-                pharmaceuticals, pharmaceuticals_prices
-            )
-            save_receipt_to_json(receipt_data)
-
+            if not items:
+                print("\nCart is empty. Add items before checkout.")
+                continue
+            transaction_id = generate_transaction_id()
+            receipt_text = create_receipt_text(transaction_id, items, prices, category_data)
+            save_receipt_to_txt(receipt_text, transaction_id)
             print("\nCheckout complete! Thank you for shopping!")
             return True
-
+        
         elif choice == "2":
             if not items:
                 print("\nNo items to remove.")
                 continue
-                
             try:
-                remove_index = int(input(f"Enter item number (1-{len(items)}): ")) - 1 # convert to 0-based index
-                if 0 <= remove_index < len(items): 
-                    item_to_remove = items[remove_index]
-                    
-                    # Remove from main lists
-                    removed_item = items.pop(remove_index)
-                    removed_price = prices.pop(remove_index)
-                    
-                    # Remove from category lists
-                    if item_to_remove in food:
-                        idx = food.index(item_to_remove)
-                        food.pop(idx)
-                        food_prices.pop(idx)
-                    elif item_to_remove in clothing:
-                        idx = clothing.index(item_to_remove)
-                        clothing.pop(idx)
-                        clothing_prices.pop(idx)
-                    elif item_to_remove in electronics:
-                        idx = electronics.index(item_to_remove)
-                        electronics.pop(idx)
-                        electronics_prices.pop(idx)
-                    elif item_to_remove in pharmaceuticals:
-                        idx = pharmaceuticals.index(item_to_remove)
-                        pharmaceuticals.pop(idx)
-                        pharmaceuticals_prices.pop(idx)
-
-                    print(f"\nRemoved {removed_item} (${removed_price:.2f})")
+                remove_index = int(input(f"Enter item number (0-{total_items-1}): "))
+                if 0 <= remove_index < total_items:
+                    # Find which category contains the item
+                    current_index = 0
+                    for category_key, (category_name, items_list, prices_list) in category_data.items():
+                        if current_index <= remove_index < current_index + len(items_list):
+                            local_index = remove_index - current_index
+                            removed_item = items_list.pop(local_index)
+                            removed_price = prices_list.pop(local_index)
+                            items.remove(removed_item)
+                            prices.remove(removed_price)
+                            print(f"\nRemoved {removed_item} (${removed_price:.2f})")
+                            break
+                        current_index += len(items_list)
                 else:
-                    print("\nInvalid item number. Please try again.")
+                    print("\nInvalid item number.")
             except ValueError:
                 print("\nInvalid input. Please enter a number.")
-
+        
         elif choice == "3":
             print("\nTransaction cancelled.")
             items.clear()
             prices.clear()
-            food.clear()
-            food_prices.clear()
-            clothing.clear()
-            clothing_prices.clear()
-            electronics.clear()
-            electronics_prices.clear()
-            pharmaceuticals.clear()
-            pharmaceuticals_prices.clear()
+            for _, (_, items_list, prices_list) in category_data.items():
+                items_list.clear()
+                prices_list.clear()
             return False
-
+        
         else:
             print("\nInvalid choice. Please enter 1, 2, or 3.")
 
 def main():
-    item = []
-    prices =[]
-    food = []
-    clothing = []
-    electronics = []
-    pharmaceuticals = []
-    food_prices = []
-    clothing_prices = []
-    electronics_prices = []
-    pharmaceuticals_prices = []
-
+    items = []
+    prices = []
+    category_data = {
+        "f": ("FOOD", [], []),
+        "c": ("CLOTHING", [], []),
+        "e": ("ELECTRONICS", [], []),
+        "p": ("PHARMACEUTICALS", [], [])
+    }
+    
     while True:
-        item_name = input('Enter item name (input "q" to quit or "c" to checkout): ').strip()
-
+        print("\nEnter: 'q' to quit, 'c' to checkout")
+        item_name = input("Enter item name: ").strip()
+        
         if item_name.lower() == "q":
             break
         elif item_name.lower() == "c":
-            if item:
-                if checkout_process(item, prices, food, food_prices, clothing, clothing_prices, electronics, electronics_prices, pharmaceuticals, pharmaceuticals_prices):
+            if items:
+                if checkout_process(items, prices, category_data):
                     break
             else:
                 print("Cart is empty. Please add items first.")
             continue
-
+        
         if not item_name:
-            print("Name cannot be empty. Please enter an item name.")
+            print("Name cannot be empty.")
             continue
-
+        
         try:
-            price = float(input('Enter price: '))
+            price = float(input("Enter price: "))
             if price <= 0:
-                print("Price must be greater than 0. Re-enter item name and price")
+                print("Price must be greater than 0.")
                 continue
-                    
-            while True:
-                category = input("Enter category (f = food/ c = clothing/ e = electronics/ p = pharmaceuticals): ").strip().lower()
-                if category in ["f", "c", "e", "p"]:
-                    break
-                print("Invalid category. Please enter 'f', 'c', 'e', or 'p'.")
-
-            if category == "f":
-                food.append(item_name)
-                food_prices.append(price)
-            elif category == "c":
-                clothing.append(item_name)
-                clothing_prices.append(price)
-            elif category == "e":
-                electronics.append(item_name)
-                electronics_prices.append(price)
-            elif category == "p":
-                pharmaceuticals.append(item_name)
-                pharmaceuticals_prices.append(price)
-
-            item.append(item_name)
-            prices.append(price)
-
-            print(f"Item added! Running total (without tax): ${sum(prices):.2f}")
-
         except ValueError:
-            print("Invalid input. Re-enter item name and price")
+            print("Invalid price. Please enter a number.")
+            continue
+        
+        category = input("Enter category (f = food, c = clothing, e = electronics, p = pharmaceuticals): ").strip().lower()
+        if category not in CATEGORIES:
+            print("Invalid category. Use 'f', 'c', 'e', or 'p'.")
+            continue
+        
+        category_name, items_list, prices_list = category_data[category]
+        items_list.append(item_name)
+        prices_list.append(price)
+        items.append(item_name)
+        prices.append(price)
+        
+        print(f"Added {item_name} (${price:.2f}) to {category_name}")
+        print(f"Running total (without tax): ${sum(prices):.2f}")
 
 if __name__ == "__main__":
     main()
