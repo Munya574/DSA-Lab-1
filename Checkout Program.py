@@ -1,17 +1,66 @@
 import os
 import datetime
-
+import csv
 # Constants
 TAX_RATE = 0.1044
 STORE_NAME = "GROUP 5 STORE"
 
-# Categories configuration
-CATEGORIES = {
-    "f": ("FOOD", "food"),
-    "c": ("CLOTHING", "clothing"),
-    "e": ("ELECTRONICS", "electronics"),
-    "p": ("PHARMACEUTICALS", "pharmaceuticals")
+category_data = {
+        "f": ("FOOD", [], []),
+        "c": ("CLOTHING", [], []),
+        "e": ("ELECTRONICS", [], []),
+        "p": ("PHARMACEUTICALS", [], [])
+    }
+
+CATALOG = {
+    "f": {
+        "name": "FOOD",
+        "items": {
+            "Apple": 1.00,
+            "Banana": 0.50,
+            "Bread": 2.50,
+            "Milk": 3.00,
+            "Eggs": 2.00
+        }
+    },
+    "c": {
+        "name": "CLOTHING",
+        "items": {
+            "T-Shirt": 15.00,
+            "Jeans": 40.00,
+            "Jacket": 60.00,
+            "Socks": 5.00,
+            "Hat": 10.00
+        }
+    },
+    "e": {
+        "name": "ELECTRONICS",
+        "items": {
+            "Headphones": 50.00,
+            "Smartphone": 500.00,
+            "Laptop": 1000.00,
+            "Tablet": 300.00,
+            "Charger": 20.00
+        }
+    },
+    "p": {
+        "name": "PHARMACEUTICALS",
+        "items": {
+            "Aspirin": 5.00,
+            "Band-Aids": 3.00,
+            "Vitamins": 10.00,
+            "Cold Medicine": 7.00,
+            "Antibiotics": 15.00
+        }
+    }
 }
+# Categories configuration
+#CATEGORIES = {
+   # "f": ("FOOD", "food"),
+    #"c": ("CLOTHING", "clothing"),
+    #"e": ("ELECTRONICS", "electronics"),
+    #"p": ("PHARMACEUTICALS", "pharmaceuticals")
+#}
 
 def calculate_tax(price):
     return price * TAX_RATE
@@ -36,7 +85,7 @@ def get_existing_transaction_ids():
     return {filename.split('_')[0] for filename in os.listdir(receipts_dir) 
             if filename.endswith('_receipt.txt')}
 
-def create_receipt_text(transaction_id, items, prices, category_data):
+def create_receipt_text(transaction_id, items, prices):
     total_before_tax, total_tax, total_after_tax = get_totals(prices)
     
     receipt = []
@@ -49,11 +98,13 @@ def create_receipt_text(transaction_id, items, prices, category_data):
     receipt.append("-" * 40)
     
     # Display categorized items
-    for category_key, (category_name, items_list, prices_list) in category_data.items():
-        if items_list:
-            receipt.append(f"\n{category_name}:")
-            for item, price in zip(items_list, prices_list):
-                receipt.append(f"{item:<25} ${price:>9.2f}")
+    for item, price in zip(items, prices):
+        receipt.append(f"{item:<25} ${price:>9.2f}")
+   # for category_key, (category_name, items_list, prices_list) in category_data.items():
+    #    if items_list:
+     #       receipt.append(f"\n{category_name}:")
+      #      for item, price in zip(items_list, prices_list):
+       #         receipt.append(f"{item:<25} ${price:>9.2f}")
     
     # Totals
     receipt.append("\n" + "-" * 40)
@@ -66,42 +117,71 @@ def create_receipt_text(transaction_id, items, prices, category_data):
     
     return "\n".join(receipt)
 
-def save_receipt_to_txt(receipt_text, transaction_id):
-    os.makedirs("receipts", exist_ok=True)
-    file_path = os.path.join("receipts", f"{transaction_id}_receipt.txt")
-    try:
-        with open(file_path, "w") as file:
-            file.write(receipt_text)
-        print(f"\nYour receipt has been saved to {file_path}")
-    except IOError as e:
-        print(f"\nError saving receipt: {e}")
+def save_receipt_to_csv(transaction_id, items, prices, category_data):
+    receipts_file = "receipts.csv"
+    file_exists = os.path.isfile(receipts_file)
+    
+    with open(receipts_file, mode="a", newline="") as file:
+        writer = csv.writer(file)
+        
+        # Write header if file doesn't exist
+        if not file_exists:
+            writer.writerow([
+                "TransactionID", "Date", "Category", "Item", "Quantity", 
+                "PricePerUnit", "TotalPrice", "Subtotal", "Tax", "Total"
+            ])
+        
+        # Calculate totals
+        subtotal = sum(prices)
+        tax = subtotal * TAX_RATE
+        total = subtotal + tax
+        
+        # Write each item in the transaction
+        for item, price in zip(items, prices):
+            item_name, quantity = item.split(" x")
+            category = "FOOD"  # Replace with logic to get the correct category
+            writer.writerow([
+                transaction_id,
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                category,
+                item_name,
+                quantity,
+                price / int(quantity),  # Price per unit
+                price,  # Total price for the item
+                subtotal,
+                tax,
+                total
+            ])
+    
+    print(f"\nReceipt data has been saved to {receipts_file}")
 
-def display_cart(category_data, prices):
+def display_cart(items, prices):
     total_before_tax, total_tax, total_after_tax = get_totals(prices)
     print("\n" + "=" * 40)
     print("{:^40}".format("SHOPPING CART"))
     print("=" * 40)
     
-    item_index = 0
-    for category_key, (category_name, items, prices_list) in category_data.items():
-        if items:
-            print(f"\n{category_name}:")
-            print("{:<5} {:<25} {:>12}".format("No.", "Item", "Price ($)"))
-            print("-" * 40)
-            for i, (item, price) in enumerate(zip(items, prices_list), item_index):
+    #item_index = 0
+    #for category_key, (category_name, items, prices_list) in category_data.items():
+     #   if items:
+      #      print(f"\n{category_name}:")
+    print("{:<5} {:<25} {:>12}".format("No.", "Item", "Price ($)"))
+    print("-" * 40)
+    for i, (item, price) in enumerate(zip(items, prices)):
                 print(f"{i:<5} {item:<25} ${price:>9.2f}")
-            item_index += len(items)
+            #item_index += len(items)
     
     print("\n" + "-" * 40)
     print(f"{'Subtotal:':<25} ${total_before_tax:>9.2f}")
     print(f"{'Tax:':<25} ${total_tax:>9.2f}")
     print(f"{'Total:':<25} ${total_after_tax:>9.2f}")
     print("=" * 40)
-    return item_index  # Total number of items
+    #return item_index  # Total number of items
 
-def checkout_process(items, prices, category_data):
+def checkout_process(items, prices):
     while True:
-        total_items = display_cart(category_data, prices)
+        #total_items = 
+        display_cart(items, prices)
         
         print("\nOptions:")
         print("1. Complete Checkout")
@@ -114,8 +194,8 @@ def checkout_process(items, prices, category_data):
                 print("\nCart is empty. Add items before checkout.")
                 continue
             transaction_id = generate_transaction_id()
-            receipt_text = create_receipt_text(transaction_id, items, prices, category_data)
-            save_receipt_to_txt(receipt_text, transaction_id)
+            receipt_text = create_receipt_text(transaction_id, items, prices)
+            save_receipt_to_csv(transaction_id, items, prices, category_data)
             print("\nCheckout complete! Thank you for shopping!")
             return True
         
@@ -124,20 +204,20 @@ def checkout_process(items, prices, category_data):
                 print("\nNo items to remove.")
                 continue
             try:
-                remove_index = int(input(f"Enter item number (0-{total_items-1}): "))
-                if 0 <= remove_index < total_items:
+                remove_index = int(input(f"Enter item number (0-{len(items)-1}): "))
+                if 0 <= remove_index < len(items):
                     # Find which category contains the item
-                    current_index = 0
-                    for category_key, (category_name, items_list, prices_list) in category_data.items():
-                        if current_index <= remove_index < current_index + len(items_list):
-                            local_index = remove_index - current_index
-                            removed_item = items_list.pop(local_index)
-                            removed_price = prices_list.pop(local_index)
-                            items.remove(removed_item)
-                            prices.remove(removed_price)
+                    #current_index = 0
+                    #for category_key, (category_name, items_list, prices_list) in category_data.items():
+                     #   if current_index <= remove_index < current_index + len(items_list):
+                           # local_index = remove_index - current_index
+                            removed_item = items.pop(remove_index)
+                            removed_price = prices.pop(remove_index)
+                           # items.remove(removed_item)
+                            #prices.remove(removed_price)
                             print(f"\nRemoved {removed_item} (${removed_price:.2f})")
-                            break
-                        current_index += len(items_list)
+                            return
+                        #current_index += len(items_list)
                 else:
                     print("\nInvalid item number.")
             except ValueError:
@@ -147,9 +227,9 @@ def checkout_process(items, prices, category_data):
             print("\nTransaction cancelled.")
             items.clear()
             prices.clear()
-            for _, (_, items_list, prices_list) in category_data.items():
-                items_list.clear()
-                prices_list.clear()
+            #for _, (_, items_list, prices_list) in category_data.items():
+             #   items_list.clear()
+              #  prices_list.clear()
             return False
         
         else:
@@ -164,47 +244,97 @@ def main():
         "e": ("ELECTRONICS", [], []),
         "p": ("PHARMACEUTICALS", [], [])
     }
-    
     while True:
-        print("\nEnter: 'q' to quit, 'c' to checkout")
-        item_name = input("Enter item name: ").strip()
+        print("\nSelect a category:")
+        for key, value in CATALOG.items():
+            print(f"{key}. {value['name']}")
+        print("x. Checkout")
+        print("q. Quit")
+        choice = input("Enter your choice: ").strip().lower()
         
-        if item_name.lower() == "q":
+        if choice == "q":
+            print("\nThank you for visiting! Goodbye!")
             break
-        elif item_name.lower() == "c":
-            if items:
-                if checkout_process(items, prices, category_data):
-                    break
-            else:
-                print("Cart is empty. Please add items first.")
-            continue
-        
-        if not item_name:
-            print("Name cannot be empty.")
-            continue
-        
-        try:
-            price = float(input("Enter price: "))
-            if price <= 0:
-                print("Price must be greater than 0.")
+        elif choice == "x":
+            if not items:
+                print("\nCart is empty. Please add items first.")
                 continue
-        except ValueError:
-            print("Invalid price. Please enter a number.")
-            continue
+            if checkout_process(items, prices):
+                break
+        elif choice in CATALOG:
+            category = CATALOG[choice]
+            print(f"\n{category['name']} Items:")
+            item_list = list(category['items'].items())
+            for i, (item, price) in enumerate(item_list, start=1):
+                print(f"{i}. {item}: ${price:.2f}")
+            
+            try:
+                item_number = int(input("\nEnter the number of the item you want to add: "))
+                if item_number < 1 or item_number > len(item_list):
+                    print("Invalid item number. Please try again.")
+                    continue
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                continue
+            
+            item_name, item_price = item_list[item_number - 1]
+            
+            try:
+                quantity = int(input(f"How many {item_name}(s) do you want? "))
+                if quantity <= 0:
+                    print("Quantity must be greater than 0.")
+                    continue
+            except ValueError:
+                print("Invalid quantity. Please enter a number.")
+                continue
+            
+            total_price = item_price * quantity
+            items.append(f"{item_name} x{quantity}")
+            prices.append(total_price)
+            
+            print(f"Added {item_name} x{quantity} (${total_price:.2f}) to your cart.")
+            print(f"Running total (without tax): ${sum(prices):.2f}")
+        else:
+            print("Invalid choice. Please try again.")
+            #print("\nEnter: 'q' to quit, 'c' to checkout")
+        #item_name = input("Enter item name: ").strip()
         
-        category = input("Enter category (f = food, c = clothing, e = electronics, p = pharmaceuticals): ").strip().lower()
-        if category not in CATEGORIES:
-            print("Invalid category. Use 'f', 'c', 'e', or 'p'.")
-            continue
+      #  if item_name.lower() == "q":
+       #     break
+       # elif item_name.lower() == "c":
+        #    if items:
+         #       if checkout_process(items, prices, category_data):
+          #          break
+           # else:
+            #    print("Cart is empty. Please add items first.")
+            #continue
         
-        category_name, items_list, prices_list = category_data[category]
-        items_list.append(item_name)
-        prices_list.append(price)
-        items.append(item_name)
-        prices.append(price)
+      #  if not item_name:
+       #     print("Name cannot be empty.")
+        #    continue
         
-        print(f"Added {item_name} (${price:.2f}) to {category_name}")
-        print(f"Running total (without tax): ${sum(prices):.2f}")
+       # try:
+        #    price = float(input("Enter price: "))
+         #   if price <= 0:
+          #      print("Price must be greater than 0.")
+      #          continue
+       # except ValueError:
+        #    print("Invalid price. Please enter a number.")
+         #   continue
+        #
+     #   category = input("Enter category (f = food, c = clothing, e = electronics, p = pharmaceuticals): ").strip().lower()
+      #  if category not in CATEGORIES:
+       #     print("Invalid category. Use 'f', 'c', 'e', or 'p'.")
+        #    continue
+        
+       # category_name, items_list, prices_list = category_data[category]
+        #items_list.append(item_name)
+      #  prices_list.append(price)
+       # items.append(item_name)
+        #prices.append(price)
+        
+       # print(f"Added {item_name} (${price:.2f}) to {category_name}")
+       # print(f"Running total (without tax): ${sum(prices):.2f}")
 
 if __name__ == "__main__":
     main()
