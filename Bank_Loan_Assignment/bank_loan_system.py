@@ -31,8 +31,38 @@ def get_valid_input(prompt, cast_type, condition):
             print("Invalid input. Please try again.")
         except ValueError:
             print("Invalid format. Enter a valid number.")
+            
+# Display loan summary
+def display_loan_summary(loan_name, loan_amount, annual_rate, term_years, monthly_payment, total_interest):
+    """
+    Displays the loan summary and asks the user whether to proceed or adjust.
+    """
+    print("\n==== Loan Summary ====")
+    print(f"Loan Type: {loan_name}")
+    print(f"Loan Amount: ${loan_amount:,.2f}")
+    print(f"Interest Rate: {annual_rate}% per year")
+    print(f"Loan Term: {term_years} years")
+    print(f"Monthly Payment: ${monthly_payment:,.2f}")
+    print(f"Total Interest Paid: ${total_interest:,.2f}")
+    print("=======================\n")
 
+# Save to CSV file
+def save_to_csv(loan_type, loan_amount, annual_rate, term_years, monthly_payment, total_interest, status):
+    """
+    Saves the loan details to a CSV file.
+    """
+    filename = "loan_records.csv"
+
+    with open(filename, mode="a", newline="") as file:
+        writer = csv.writer(file)
+
+        # Write header only if the file is empty
+        if file.tell() == 0:
+            writer.writerow(["Loan Type", "Loan Amount", "Interest Rate", "Term (Years)", "Monthly Payment", "Total Interest", "Status"])
+
+        writer.writerow([loan_type, loan_amount, annual_rate, term_years, monthly_payment, total_interest, status])
 # Process loan
+
 def process_loan():
     print("\n--- Welcome to Group 5's Bank Loan System ---\n")
     print("Loan Types: [H] Housing, [A] Auto, [P] Personal")
