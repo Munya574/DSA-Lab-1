@@ -1,4 +1,6 @@
 import csv
+import uuid
+import datetime
 
 # Loan data (interest rates and max terms)
 LOAN_OPTIONS = {
@@ -6,6 +8,24 @@ LOAN_OPTIONS = {
     "a": {"name": "Auto", "rate": 7.5, "max_term": 6},
     "p": {"name": "Personal", "rate": 9.6, "max_term": 10},
 }
+
+def generate_unique_id():
+    existing_ids = set()
+    try:
+        with open("loan_records.csv", "r") as file:
+            reader = csv.reader(file)
+            next(reader, None) 
+            existing_ids = {row[0] for row in reader}
+    except FileNotFoundError:
+        pass
+    
+    while True:
+        new_id = str(uuid.uuid4())[:8]
+        if new_id not in existing_ids:
+            return new_id
+
+def get_current_timestamp():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Loan calculation function
 def calculate_monthly_payment(principal, annual_rate, term_years):
@@ -74,8 +94,12 @@ def process_loan():
         else:
             print("\nInvalid choice. Please try again.")
     
+    loan_id = generate_unique_id()
+    timestamp = get_current_timestamp()
+
     total_interest = (monthly_payment * term_years * 12) - loan_amount
     print("\n--- Loan Summary ---")
+    print(f"Loan ID: {loan_id}")
     print(f"Loan Type: {loan_name}")
     print(f"Loan Amount: ${loan_amount:,.2f}")
     print(f"Interest Rate: {rate}%")
@@ -95,11 +119,20 @@ def process_loan():
         return
     
     # Store in CSV file
+    file_exists = False
+    try:
+        with open("loan_records.csv", "r") as f:
+            file_exists = bool(f.readline())
+    except FileNotFoundError:
+        pass
+
     with open("loan_records.csv", "a", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow([loan_type, loan_amount, rate, term_years, monthly_payment, total_interest, "Approved"])
+        if not file_exists:
+            writer.writerow(["Loan ID", "Loan Type", "Amount", "Rate", "Term", "Monthly Payment", "Total Interest", "Timestamp", "Status"])
+        writer.writerow([loan_id, loan_name, loan_amount, rate, term_years, monthly_payment, total_interest, timestamp, "Approved"])
 
-    print("\n Your Loan has been recorded successfully!")
+    print("\n Your Loan has been APPROVED and recorded successfully!")
 
 # Run the program
 if __name__ == "__main__":
