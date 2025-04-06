@@ -3,10 +3,12 @@ import os
 from datetime import datetime, time
 
 class Student:
-    def __init__(self, student_id, name, password):
+    def __init__(self, student_id, name, password, email, major):
         self.student_id = student_id
         self.name = name
         self.password = password
+        self.email = email
+        self.major = major
         self.registered_courses = set()
     
     def get_total_credits(self, courses):
@@ -26,12 +28,12 @@ class Student:
         return False
     
     def to_csv_row(self):
-        """Convert student data to CSV row format"""
-        return [self.student_id, self.name, self.password, ",".join(self.registered_courses)]
+        """Convert student data to a CSV row"""
+        return [self.student_id, self.name, self.password, self.email, self.major, ','.join(self.registered_courses)]
 
 
 class Course:
-    def __init__(self, course_id, name, department, instructor, max_students=30, credits=3, days=None, start_time=None, end_time=None):
+    def __init__(self, course_id, name, department, instructor, max_students=5, credits=2, days=None, start_time=None, end_time=None):
         self.course_id = course_id
         self.name = name
         self.department = department
@@ -92,7 +94,7 @@ class EnrollmentSystem:
     def __init__(self):
         self.students = {}
         self.courses = {}
-        self.max_credits = 18  # Maximum credits a student can take
+        self.max_credits = 10  # Maximum credits a student can take
         self.data_dir = "data"
         self.ensure_data_directory()
         self.load_data()
@@ -170,52 +172,66 @@ class EnrollmentSystem:
                     
                     self.courses[course_id] = course
     
+    def preload_students(self):
+        """Preload sample students data"""
+        students_data = [
+            ("Z01234", "James Phiri", "password123", "jphiri@zed.edu", "Computer Science"),
+            ("Z05678", "Dingiswayo Mukandawire", "password456", "dmukandawire@zed.edu", "Mathematics"),
+            ("Z09123", "Nasilele Nakazwe", "password789", "nnakazwe@zed.edu", "Physics"),
+        ]
+
+        for student_id, name, password, email, major in students_data:
+            self.students[student_id] = Student(student_id, name, password, email, major)
+    
+        # Save the preloaded students data
+        self.save_students()
+
     def _create_sample_courses(self):
         """Create sample courses for Zed University"""
         # Computer Science Department
         cs_courses = [
-            Course("CS101", "Introduction to Programming", "Computer Science", "Dr. Smith", 30, 3, 
+            Course("CS101", "Introduction to Programming", "Computer Science", "Dr. Smith", 5, 2, 
                   ["Mon", "Wed"], time(9, 0), time(10, 30)),
-            Course("CS201", "Data Structures", "Computer Science", "Dr. Johnson", 25, 4, 
+            Course("CS201", "Data Structures", "Computer Science", "Dr. Johnson", 5, 2, 
                   ["Tue", "Thu"], time(11, 0), time(12, 30)),
-            Course("CS301", "Algorithms", "Computer Science", "Dr. Lee", 20, 4, 
+            Course("CS301", "Algorithms", "Computer Science", "Dr. Lee", 5, 2, 
                   ["Mon", "Wed"], time(13, 0), time(14, 30)),
-            Course("CS350", "Database Systems", "Computer Science", "Dr. Garcia", 25, 3, 
+            Course("CS350", "Database Systems", "Computer Science", "Dr. Garcia", 5, 2, 
                   ["Tue", "Thu"], time(14, 0), time(15, 30)),
-            Course("CS401", "Artificial Intelligence", "Computer Science", "Dr. Wong", 20, 4, 
+            Course("CS401", "Artificial Intelligence", "Computer Science", "Dr. Wong", 5, 2, 
                   ["Mon", "Wed"], time(15, 0), time(16, 30))
         ]
         
         # Mathematics Department
         math_courses = [
-            Course("MATH101", "Calculus I", "Mathematics", "Dr. Brown", 35, 4, 
+            Course("MATH101", "Calculus I", "Mathematics", "Dr. Brown", 5, 2, 
                   ["Mon", "Wed", "Fri"], time(10, 0), time(11, 0)),
-            Course("MATH201", "Linear Algebra", "Mathematics", "Dr. Wilson", 30, 3, 
+            Course("MATH201", "Linear Algebra", "Mathematics", "Dr. Wilson", 5, 2, 
                   ["Tue", "Thu"], time(9, 0), time(10, 30)),
-            Course("MATH301", "Differential Equations", "Mathematics", "Dr. Taylor", 25, 4, 
+            Course("MATH301", "Differential Equations", "Mathematics", "Dr. Taylor", 5, 2, 
                   ["Mon", "Wed"], time(14, 0), time(15, 30)),
-            Course("MATH350", "Probability Theory", "Mathematics", "Dr. Martinez", 30, 3, 
+            Course("MATH350", "Probability Theory", "Mathematics", "Dr. Martinez", 5, 2, 
                   ["Tue", "Thu"], time(13, 0), time(14, 30)),
-            Course("MATH401", "Real Analysis", "Mathematics", "Dr. Anderson", 20, 4, 
+            Course("MATH401", "Real Analysis", "Mathematics", "Dr. Anderson", 5, 2, 
                   ["Mon", "Wed", "Fri"], time(13, 0), time(14, 0))
         ]
         
         # Physics Department
-        physics_courses = [
-            Course("PHYS101", "Physics I: Mechanics", "Physics", "Dr. Rodriguez", 30, 4, 
-                  ["Mon", "Wed"], time(11, 0), time(12, 30)),
-            Course("PHYS201", "Physics II: Electromagnetism", "Physics", "Dr. Lewis", 25, 4, 
-                  ["Tue", "Thu"], time(10, 0), time(11, 30)),
-            Course("PHYS301", "Quantum Mechanics", "Physics", "Dr. Clark", 20, 4, 
-                  ["Mon", "Wed"], time(14, 0), time(15, 30)),
-            Course("PHYS350", "Thermodynamics", "Physics", "Dr. Walker", 25, 3, 
-                  ["Tue", "Thu"], time(15, 0), time(16, 30)),
-            Course("PHYS401", "Nuclear Physics", "Physics", "Dr. Hall", 15, 4, 
-                  ["Mon", "Wed", "Fri"], time(9, 0), time(10, 0))
-        ]
+     #   physics_courses = [
+      #      Course("PHYS101", "Physics I: Mechanics", "Physics", "Dr. Rodriguez", 30, 4, 
+       #           ["Mon", "Wed"], time(11, 0), time(12, 30)),
+        #    Course("PHYS201", "Physics II: Electromagnetism", "Physics", "Dr. Lewis", 25, 4, 
+         #         ["Tue", "Thu"], time(10, 0), time(11, 30)),
+          #  Course("PHYS301", "Quantum Mechanics", "Physics", "Dr. Clark", 20, 4, 
+       #           ["Mon", "Wed"], time(14, 0), time(15, 30)),
+        #    Course("PHYS350", "Thermodynamics", "Physics", "Dr. Walker", 25, 3, 
+         #         ["Tue", "Thu"], time(15, 0), time(16, 30)),
+          #  Course("PHYS401", "Nuclear Physics", "Physics", "Dr. Hall", 15, 4, 
+           #       ["Mon", "Wed", "Fri"], time(9, 0), time(10, 0))
+       # ]
         
         # Add all courses to the course dictionary
-        for course in cs_courses + math_courses + physics_courses:
+        for course in cs_courses + math_courses : # + physics_courses
             self.courses[course.course_id] = course
         
         # Save courses to CSV
@@ -248,7 +264,7 @@ class EnrollmentSystem:
         students_file = os.path.join(self.data_dir, "students.csv")
         with open(students_file, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["StudentID", "Name", "Password", "RegisteredCourses"])
+            writer.writerow(["StudentID", "Name", "Password", "Email", "Major", "RegisteredCourses"])
             for student in self.students.values():
                 writer.writerow(student.to_csv_row())
     
@@ -370,6 +386,7 @@ class EnrollmentSystem:
 class UniversitySystem:
     def __init__(self):
         self.enrollment_system = EnrollmentSystem()
+        self.enrollment_system.preload_students()
         self.current_student = None
     
     def main_menu(self):
