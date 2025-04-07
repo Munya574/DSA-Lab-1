@@ -92,6 +92,8 @@ class Course:
 
 class EnrollmentSystem:
     def __init__(self):
+        self.students_file = 'students.csv'
+        self.courses_file = 'courses.csv'
         self.students = {}
         self.courses = {}
         self.max_credits = 10  # Maximum credits a student can take
@@ -106,23 +108,34 @@ class EnrollmentSystem:
     
     def load_data(self):
         """Load student and course data from CSV files"""
+        if not os.path.exists(self.students_file):
+            print(f"Warning: {self.students_file} not found. Creating a new file.")
+            self.create_empty_students_file()  
+
+        self.preload_students()
         self._load_students()
         self._load_courses()
         self._load_enrollments()
-    
+
+    def create_empty_students_file(self):
+        """Create an empty students.csv file"""
+        with open(self.students_file, mode='w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['student_id', 'name', 'email', 'major'])
+
     def _load_students(self):
-        """Load student data from CSV file"""
-        students_file = os.path.join(self.data_dir, "students.csv")
-        if not os.path.exists(students_file):
-            return
-            
-        with open(students_file, 'r', newline='') as file:
-            reader = csv.reader(file)
-            next(reader)  # Skip header
+        if not os.path.exists(self.students_file):
+            self.preload_students()
+    
+        with open(self.students_file, newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
             for row in reader:
-                if len(row) >= 3:
-                    student_id, name, password = row[0], row[1], row[2]
-                    self.students[student_id] = Student(student_id, name, password)
+                student_id = row['student_id']
+                name = row['name']
+                password = row['password']
+                email = row['email']
+                major = row['major']
+                self.students[student_id] = Student(student_id, name, password, email, major)
     
     def _load_courses(self):
         """Load course data from CSV file"""
@@ -478,25 +491,30 @@ class UniversitySystem:
             print("5. Logout")
             print("=" * 50)
             
-            choice = input("Enter your choice (1-5): ")
+            try:
+                choice = input("Enter your choice (1-5): ")
             
-            if choice == '1':
-                self.view_available_courses()
-            elif choice == '2':
-                self.view_my_schedule()
-            elif choice == '3':
-                self.enroll_in_course()
-            elif choice == '4':
-                self.drop_a_course()
-            elif choice == '5':
-                self.current_student = None
-                print("Logged out successfully.")
+                if choice == '1':
+                    self.view_available_courses()
+                elif choice == '2':
+                    self.view_my_schedule()
+                elif choice == '3':
+                    self.enroll_in_course()
+                elif choice == '4':
+                    self.drop_a_course()
+                elif choice == '5':
+                    self.current_student = None
+                    print("Logged out successfully.")
+                    input("Press Enter to continue...")
+                    self.main_menu()
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 5.")
+                    input("Press Enter to continue...")
+            except ValueError:
+                print("Invalid input. Please enter a valid number between 1 and 5.")
                 input("Press Enter to continue...")
-                self.main_menu()
-                break
-            else:
-                input("Invalid choice. Press Enter to continue...")
-    
+
     def view_available_courses(self):
         """Display all available courses"""
         self._clear_screen()
@@ -600,34 +618,56 @@ class UniversitySystem:
             print(f"   Instructor: {course.instructor}")
             print(f"   Enrollment: {len(course.enrolled_students)}/{course.max_students}")
             print("-" * 50)
-        
-        try:
-            choice = int(input(f"Enter course number (1-{len(available_courses)}) or 0 to cancel: "))
             
-            if choice == 0:
-                return
-                
-            if 1 <= choice <= len(available_courses):
-                selected_course = available_courses[choice - 1]
-                
-                # Confirm enrollment
-                print(f"\nYou selected: {selected_course.course_id}: {selected_course.name}")
-                confirm = input("Confirm enrollment? (y/n): ").lower()
-                
-                if confirm == 'y':
-                    success, message = self.enrollment_system.enroll_student(
-                        self.current_student.student_id, 
-                        selected_course.course_id
-                    )
-                    
-                    print(message)
-                else:
-                    print("Enrollment cancelled.")
-            else:
-                print("Invalid selection.")
-        except ValueError:
-            print("Please enter a valid number.")
+        while True:
+            try:
+                choice = int(input(f"Enter course number (1-{len(available_courses)}) or 0 to cancel: "))
         
+                if choice == 0:
+                    return
+                
+                if 1 <= choice <= len(available_courses):
+                    selected_course = available_courses[choice - 1]
+                    print(f"\nYou selected: {selected_course.course_id}: {selected_course.name}")
+                
+              #  conflicts = self.check_for_conflicts(selected_course)
+               # if conflicts:
+                #    print("Conflict detected with the following courses:")
+                 #   for conflict in conflicts:
+                  #      print(f"  {conflict.course_id}: {conflict.name} on {', '.join(conflict.days)} {conflict.start_time.strftime('%H:%M')} - {conflict.end_time.strftime('%H:%M')}")
+                  #  print("Please choose another course or adjust your schedule to resolve the conflict.")
+                   # input("Press Enter to continue...")
+                   # return
+            
+                # Confirm enrollment
+                    while True:
+                        try:
+                            confirm = input("Confirm enrollment? (y/n): ").lower()
+            
+                            if confirm not in ['y', 'n']:
+                                raise ValueError("Invalid input. Please enter 'y' or 'n'.")
+           
+                            if confirm == 'y':
+                                success, message = self.enrollment_system.enroll_student(
+                                    self.current_student.student_id, 
+                                    selected_course.course_id
+                                )
+                
+                                print(message)
+                                break  # Exit the loop after successful enrollment
+                    
+                            else:
+                                print("Enrollment cancelled.")
+                                break  # Exit the loop after cancellation
+            
+                        except ValueError:
+                            print("Invalid input. Please enter 'y' or 'n'.")
+                    break
+
+                else:
+                    print(f"Invalid selection. Please enter a number between 1 and {len(available_courses)}.")
+            except ValueError: 
+                print("Invalid input. Please enter a number or 0 to cancel.")   
         input("Press Enter to continue...")
     
     def drop_a_course(self):
@@ -679,9 +719,9 @@ class UniversitySystem:
                 else:
                     print("Drop cancelled.")
             else:
-                print("Invalid selection.")
+                print(f"Invalid selection. Please enter a valid course number between 1 and {len(courses)}.")
         except ValueError:
-            print("Please enter a valid number.")
+            print("Invalid input. Please enter a valid number or 0 to cancel.")
         
         input("Press Enter to continue...")
     
