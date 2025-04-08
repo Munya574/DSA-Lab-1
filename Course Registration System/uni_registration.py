@@ -263,20 +263,6 @@ class EnrollmentSystem:
                   ["Mon", "Wed", "Fri"], time(13, 0), time(14, 0))
         ]
         
-        # Physics Department
-     #   physics_courses = [
-      #      Course("PHYS101", "Physics I: Mechanics", "Physics", "Dr. Rodriguez", 30, 4, 
-       #           ["Mon", "Wed"], time(11, 0), time(12, 30)),
-        #    Course("PHYS201", "Physics II: Electromagnetism", "Physics", "Dr. Lewis", 25, 4, 
-         #         ["Tue", "Thu"], time(10, 0), time(11, 30)),
-          #  Course("PHYS301", "Quantum Mechanics", "Physics", "Dr. Clark", 20, 4, 
-       #           ["Mon", "Wed"], time(14, 0), time(15, 30)),
-        #    Course("PHYS350", "Thermodynamics", "Physics", "Dr. Walker", 25, 3, 
-         #         ["Tue", "Thu"], time(15, 0), time(16, 30)),
-          #  Course("PHYS401", "Nuclear Physics", "Physics", "Dr. Hall", 15, 4, 
-           #       ["Mon", "Wed", "Fri"], time(9, 0), time(10, 0))
-       # ]
-        
         # Add all courses to the course dictionary
         for course in cs_courses + math_courses : # + physics_courses
             self.courses[course.course_id] = course
@@ -352,6 +338,7 @@ class EnrollmentSystem:
     
     def authenticate_student(self, student_id, password):
         """Authenticate a student by ID and password"""
+        student_id = student_id.upper()
         if student_id not in self.students:
             return False, "Student ID not found"
         
@@ -363,6 +350,7 @@ class EnrollmentSystem:
     def enroll_student(self, student_id, course_id):
         """Enroll a student in a course"""
         # Validate student and course exist
+        student_id = student_id.upper()
         if student_id not in self.students:
             return False, "Student not found"
         
@@ -401,6 +389,7 @@ class EnrollmentSystem:
     def drop_course(self, student_id, course_id):
         """Drop a student from a course"""
         # Validate student and course exist
+        student_id = student_id.upper()
         if student_id not in self.students:
             return False, "Student not found"
         
@@ -429,6 +418,7 @@ class EnrollmentSystem:
     
     def get_student_courses(self, student_id):
         """Get list of courses a student is enrolled in"""
+        student_id = student_id.upper()
         if student_id not in self.students:
             return []
         
@@ -439,7 +429,7 @@ class EnrollmentSystem:
 class UniversitySystem:
     def __init__(self):
         self.enrollment_system = EnrollmentSystem()
-        self.enrollment_system.preload_students()
+        # self.enrollment_system.preload_students()
         self.current_student = None
     
     def main_menu(self):
