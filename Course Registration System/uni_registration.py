@@ -1,7 +1,25 @@
 import csv
 import os
 from datetime import datetime, time
+import random
 
+def generate_unique_student_id(filename='data/students.csv'):
+        existing_ids = set()
+    
+        # Read existing IDs from the file
+        if os.path.exists(filename):
+            with open(filename, 'r') as file:
+                lines = file.readlines()
+                for line in lines[1:]:  # Skip header
+                    student_id = line.strip().split(',')[0]
+                    existing_ids.add(student_id)
+
+        # Generate new ID until it's unique
+        while True:
+            new_id = f"Z{random.randint(0, 99999):05d}"
+            if new_id not in existing_ids:
+                return new_id
+            
 class Student:
     def __init__(self, student_id, name, password, email, major):
         self.student_id = student_id
@@ -129,7 +147,7 @@ class EnrollmentSystem:
         with open(students_file, mode='w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(['StudentID', 'Name', 'Password', 'Email', 'Major', 'RegisteredCourses'])
-
+            
     def _load_students(self):
         students_file = os.path.join(self.data_dir, self.students_file)
         if not os.path.exists(students_file):
@@ -317,15 +335,19 @@ class EnrollmentSystem:
                 for course_id in student.registered_courses:
                     writer.writerow([student_id, course_id, datetime.now().strftime("%Y-%m-%d")])
     
-    def register_student(self, student_id, name, password):
+    def register_student(self, student):
         """Register a new student"""
-        if student_id in self.students:
-            return False, "Student ID already exists"
-        
-        email = input("Enter Email: ")
-        major = input("Enter Major: ")
-        self.students[student_id] = Student(student_id, name, password, email, major)
-        self.save_students()
+        #if student.student_id in self.students:
+            #return False, "Student ID already exists"
+        self.students[student.student_id] = student
+        file_path = "data/students.csv"
+        file_exists = os.path.isfile(file_path)
+        with open(file_path, "a", newline="") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["Student ID", "Name", "Password", "Email", "Major", "Registered Courses"])
+            writer.writerow(student.to_csv_row())
+
         return True, "Student registered successfully"
     
     def authenticate_student(self, student_id, password):
@@ -478,16 +500,29 @@ class UniversitySystem:
         print("                STUDENT REGISTRATION                 ")
         print("=" * 50)
         
-        student_id = input("Enter Student ID (e.g., Z01234): ")
-        if not student_id:
-            print("Student ID cannot be empty.")
-            input("Press Enter to continue...")
-            self.main_menu()
-            return
+        student_id = generate_unique_student_id()
+        print(f"Your generated Student ID is: {student_id}")
+        #if not student_id:
+         #   print("Student ID cannot be empty.")
+          #  input("Press Enter to continue...")
+           # self.main_menu()
+            #return
         
         name = input("Enter Full Name: ")
         if not name:
             print("Name cannot be empty.")
+            input("Press Enter to continue...")
+            self.main_menu()
+            return
+        
+        email = input("Enter your email (must end with @zed.edu): ")
+        while not email.endswith("@zed.edu"):
+            print("Email must end with '@zed.edu'")
+            email = input("Enter a valid email: ")
+
+        major = input("Enter your major: ")
+        if not major:
+            print("Major cannot be empty.")
             input("Press Enter to continue...")
             self.main_menu()
             return
@@ -499,7 +534,19 @@ class UniversitySystem:
             self.main_menu()
             return
         
-        success, message = self.enrollment_system.register_student(student_id, name, password)
+        new_student = Student(student_id, name, password, email, major)
+        self.enrollment_system.students[student_id] = new_student
+        self.current_student = new_student
+
+        #file_exists = os.path.isfile("data/students.csv")
+        #with open("data/students.csv", "a", newline="") as f:
+         #   writer = csv.writer(f)
+          #  if not file_exists:
+                # Write header if file is newly created
+           #     writer.writerow(["Student ID", "Name", "Password", "Email", "Major", "Registered Courses"])
+            #writer.writerow(new_student.to_csv_row())
+
+        success, message = self.enrollment_system.register_student(new_student)
         
         if success:
             print("Registration successful!")
@@ -510,6 +557,8 @@ class UniversitySystem:
             print(f"Registration failed: {message}")
             input("Press Enter to continue...")
             self.main_menu()
+
+        
     
     def student_menu(self):
         """Display the student menu"""
