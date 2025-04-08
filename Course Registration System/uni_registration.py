@@ -103,8 +103,13 @@ class EnrollmentSystem:
     
     def ensure_data_directory(self):
         """Create data directory if it doesn't exist"""
-        if not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
+        try:
+            if not os.path.exists(self.data_dir):
+                os.makedirs(self.data_dir)
+        except OSError as e:
+            print(f"Error creating data directory: {e}")
+            # Fallback to current directory
+            self.data_dir = ""
     
     def load_data(self):
         """Load student and course data from CSV files"""
@@ -123,7 +128,7 @@ class EnrollmentSystem:
         students_file = os.path.join(self.data_dir, self.students_file)
         with open(students_file, mode='w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['student_id', 'name', 'password', 'email', 'major'])
+            writer.writerow(['StudentID', 'Name', 'Password', 'Email', 'Major', 'RegisteredCourses'])
 
     def _load_students(self):
         students_file = os.path.join(self.data_dir, self.students_file)
@@ -131,15 +136,22 @@ class EnrollmentSystem:
             self.preload_students()
             return
     
-        with open(self.students_file, newline='', encoding='utf-8') as csvfile:
+        with open(students_file, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                student_id = row['student_id']
-                name = row['name']
-                password = row['password']
-                email = row['email']
-                major = row['major']
-                self.students[student_id] = Student(student_id, name, password, email, major)
+                student_id = row.get('student_id') or row.get('StudentID')
+                name = row.get('name') or row.get('Name')
+                password = row.get('password') or row.get('Password')
+                email = row.get('email') or row.get('Email')
+                major = row.get('major') or row.get('Major')
+            
+                if student_id and name and password:  # Make sure essential data exists
+                    self.students[student_id] = Student(student_id, name, password, email, major)
+                
+                    # Handle registered courses if present
+                    registered_courses = row.get('registered_courses') or row.get('RegisteredCourses')
+                    if registered_courses:
+                        self.students[student_id].registered_courses = set(registered_courses.split(','))
     
     def _load_courses(self):
         """Load course data from CSV file"""
@@ -632,9 +644,16 @@ class UniversitySystem:
         
         if not available_courses:
             print("No available courses to enroll in.")
+            print("Reasons might include:")
+            print("- You're already enrolled in all available courses")
+            print("- All courses are full")
+            print("- You've reached your credit limit")
             input("Press Enter to continue...")
             return
         
+        total_credits = self.current_student.get_total_credits(self.enrollment_system.courses)
+        print(f"Current Credits: {total_credits}/{self.enrollment_system.max_credits}")
+        print(f"Available Credits: {self.enrollment_system.max_credits - total_credits}")
         print("Available Courses:")
         print("-" * 50)
         for i, course in enumerate(available_courses):
@@ -657,9 +676,21 @@ class UniversitySystem:
                 if 1 <= choice <= len(available_courses):
                     selected_course = available_courses[choice - 1]
                     print(f"\nYou selected: {selected_course.course_id}: {selected_course.name}")
+
+                    conflicts = []
+                    for enrolled_course_id in self.current_student.registered_courses:
+                        enrolled_course = self.enrollment_system.courses.get(enrolled_course_id)
+                        if enrolled_course and selected_course.has_time_conflict(enrolled_course):
+                            conflicts.append(enrolled_course)
                 
-             
-            
+                    if conflicts:
+                        print("Conflict detected with the following courses:")
+                        for conflict in conflicts:
+                            print(f"  {conflict.course_id}: {conflict.name} on {', '.join(conflict.days)} {conflict.start_time.strftime('%H:%M')} - {conflict.end_time.strftime('%H:%M')}")
+                        print("Please choose another course or adjust your schedule to resolve the conflict.")
+                        input("Press Enter to continue...")
+                        return   
+                             
                 # Confirm enrollment
                     while True:
                         try:
@@ -674,12 +705,10 @@ class UniversitySystem:
                                     selected_course.course_id
                                 )
                 
-                                print(message)
-                                break  # Exit the loop after successful enrollment
-                    
+                                print(message) # Exit the loop after successful enrollment
                             else:
                                 print("Enrollment cancelled.")
-                                break  # Exit the loop after cancellation
+                            break  # Exit the loop after cancellation
             
                         except ValueError:
                             print("Invalid input. Please enter 'y' or 'n'.")
@@ -691,19 +720,6 @@ class UniversitySystem:
                 print("Invalid input. Please enter a number or 0 to cancel.")   
         input("Press Enter to continue...")
         
-        conflicts = []
-        for enrolled_course_id in self.current_student.registered_courses:
-            enrolled_course = self.enrollment_system.courses.get(enrolled_course_id)
-            if enrolled_course and selected_course.has_time_conflict(enrolled_course):
-                conflicts.append(enrolled_course)
-            
-        if conflicts:
-            print("Conflict detected with the following courses:")
-            for conflict in conflicts:
-                print(f"  {conflict.course_id}: {conflict.name} on {', '.join(conflict.days)} {conflict.start_time.strftime('%H:%M')} - {conflict.end_time.strftime('%H:%M')}")
-            print("Please choose another course or adjust your schedule to resolve the conflict.")
-            input("Press Enter to continue...")
-            return
     def drop_a_course(self):
         """Allow the student to drop a course"""
         self._clear_screen()
