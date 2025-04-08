@@ -108,8 +108,9 @@ class EnrollmentSystem:
     
     def load_data(self):
         """Load student and course data from CSV files"""
-        if not os.path.exists(self.students_file):
-            print(f"Warning: {self.students_file} not found. Creating a new file.")
+        students_file = os.path.join(self.data_dir, self.students_file)
+        if not os.path.exists(students_file):
+            print(f"Warning: {students_file} not found. Creating a new file.")
             self.create_empty_students_file()  
 
         self.preload_students()
@@ -119,13 +120,16 @@ class EnrollmentSystem:
 
     def create_empty_students_file(self):
         """Create an empty students.csv file"""
-        with open(self.students_file, mode='w', newline='', encoding='utf-8') as csvfile:
+        students_file = os.path.join(self.data_dir, self.students_file)
+        with open(students_file, mode='w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(['student_id', 'name', 'email', 'major'])
+            writer.writerow(['student_id', 'name', 'password', 'email', 'major'])
 
     def _load_students(self):
-        if not os.path.exists(self.students_file):
+        students_file = os.path.join(self.data_dir, self.students_file)
+        if not os.path.exists(students_file):
             self.preload_students()
+            return
     
         with open(self.students_file, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -306,7 +310,9 @@ class EnrollmentSystem:
         if student_id in self.students:
             return False, "Student ID already exists"
         
-        self.students[student_id] = Student(student_id, name, password)
+        email = input("Enter Email: ")
+        major = input("Enter Major: ")
+        self.students[student_id] = Student(student_id, name, password, email, major)
         self.save_students()
         return True, "Student registered successfully"
     
@@ -444,7 +450,12 @@ class UniversitySystem:
             input("Press Enter to continue...")
             self.student_menu()
         else:
-            print(f"Login failed: {message}")
+            if "not found" in message:
+                print("Student ID not found. Please check your ID or register first.")
+            elif "password" in message:
+                print("Incorrect password. Please try again.")
+            else:
+                print(f"Login failed: {message}")
             input("Press Enter to continue...")
             self.main_menu()
     
@@ -455,9 +466,26 @@ class UniversitySystem:
         print("                STUDENT REGISTRATION                 ")
         print("=" * 50)
         
-        student_id = input("Enter Student ID (e.g., S12345): ")
+        student_id = input("Enter Student ID (e.g., Z01234): ")
+        if not student_id:
+            print("Student ID cannot be empty.")
+            input("Press Enter to continue...")
+            self.main_menu()
+            return
+        
         name = input("Enter Full Name: ")
+        if not name:
+            print("Name cannot be empty.")
+            input("Press Enter to continue...")
+            self.main_menu()
+            return
+        
         password = input("Create Password: ")
+        if not password:
+            print("Password cannot be empty.")
+            input("Press Enter to continue...")
+            self.main_menu()
+            return
         
         success, message = self.enrollment_system.register_student(student_id, name, password)
         
@@ -511,8 +539,8 @@ class UniversitySystem:
                 else:
                     print("Invalid choice. Please enter a number between 1 and 5.")
                     input("Press Enter to continue...")
-            except ValueError:
-                print("Invalid input. Please enter a valid number between 1 and 5.")
+            except Exception as e:  # Use more specific exception handling
+                print(f"An error occurred: {e}")
                 input("Press Enter to continue...")
 
     def view_available_courses(self):
@@ -630,14 +658,7 @@ class UniversitySystem:
                     selected_course = available_courses[choice - 1]
                     print(f"\nYou selected: {selected_course.course_id}: {selected_course.name}")
                 
-              #  conflicts = self.check_for_conflicts(selected_course)
-               # if conflicts:
-                #    print("Conflict detected with the following courses:")
-                 #   for conflict in conflicts:
-                  #      print(f"  {conflict.course_id}: {conflict.name} on {', '.join(conflict.days)} {conflict.start_time.strftime('%H:%M')} - {conflict.end_time.strftime('%H:%M')}")
-                  #  print("Please choose another course or adjust your schedule to resolve the conflict.")
-                   # input("Press Enter to continue...")
-                   # return
+             
             
                 # Confirm enrollment
                     while True:
@@ -669,7 +690,20 @@ class UniversitySystem:
             except ValueError: 
                 print("Invalid input. Please enter a number or 0 to cancel.")   
         input("Press Enter to continue...")
-    
+        
+        conflicts = []
+        for enrolled_course_id in self.current_student.registered_courses:
+            enrolled_course = self.enrollment_system.courses.get(enrolled_course_id)
+            if enrolled_course and selected_course.has_time_conflict(enrolled_course):
+                conflicts.append(enrolled_course)
+            
+        if conflicts:
+            print("Conflict detected with the following courses:")
+            for conflict in conflicts:
+                print(f"  {conflict.course_id}: {conflict.name} on {', '.join(conflict.days)} {conflict.start_time.strftime('%H:%M')} - {conflict.end_time.strftime('%H:%M')}")
+            print("Please choose another course or adjust your schedule to resolve the conflict.")
+            input("Press Enter to continue...")
+            return
     def drop_a_course(self):
         """Allow the student to drop a course"""
         self._clear_screen()
