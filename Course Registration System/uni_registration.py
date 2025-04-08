@@ -463,7 +463,7 @@ class UniversitySystem:
         print("                   STUDENT LOGIN                     ")
         print("=" * 50)
         
-        student_id = input("Enter your Student ID: ")
+        student_id = input("Enter your Student ID: ").upper()
         password = input("Enter your Password: ")
         
         success, message = self.enrollment_system.authenticate_student(student_id, password)
